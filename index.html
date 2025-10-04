@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>镇江中考分数对比工具（多方案保存）</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { background: #f5f5f5; padding: 15px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        h1 { text-align: center; color: #333; margin-bottom: 15px; font-size: 22px; }
+        /* 方案保存/切换按钮组 */
+        .scheme-group { display: flex; gap: 8px; margin-bottom: 15px; }
+        .scheme-btn { 
+            flex: 1; height: 40px; border: 1px solid #ddd; border-radius: 6px; 
+            background: #fff; color: #333; font-size: 16px; cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .scheme-btn.save { background: #e8f5e9; color: #4CAF50; border-color: #c8e6c9; }
+        .scheme-btn.save:hover { background: #c8e6c9; }
+        .scheme-btn.load { background: #e3f2fd; color: #2196F3; border-color: #bbdefb; }
+        .scheme-btn.load:hover { background: #bbdefb; }
+        .scheme-btn.active { background: #2196F3; color: white; border-color: #1976D2; }
+        /* 重置按钮 */
+        .reset-btn { 
+            width: 100%; height: 44px; margin-bottom: 15px; 
+            border: none; border-radius: 8px; background: #f44336; 
+            color: white; font-size: 18px; font-weight: bold; 
+            cursor: pointer; transition: background 0.2s ease;
+            display: flex; align-items: center; justify-content: center;
+            gap: 8px;
+        }
+        .reset-btn:hover { background: #d32f2f; }
+        /* 科目分数表格 */
+        .score-table { width: 100%; background: #fff; border-radius: 10px; padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .subject-item { display: flex; align-items: center; margin-bottom: 15px; gap: 8px; }
+        .subject-item:last-child { margin-bottom: 0; }
+        .subject-name { width: 110px; font-size: 16px; color: #333; font-weight: 500; }
+        .score-btn { width: 30px; height: 30px; border-radius: 50%; border: none; background: #e0e0e0; color: #333; font-size: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s ease; }
+        .score-btn:hover { background: #d0d0d0; }
+        .score-btn.plus { background: #e8f5e9; color: #4CAF50; }
+        .score-btn.plus:hover { background: #c8e6c9; }
+        .score-btn.minus { background: #ffebee; color: #F44336; }
+        .score-btn.minus:hover { background: #ffcdd2; }
+        .score-slider { flex: 1; }
+        input[type="range"] { 
+            width: 100%; height: 8px; -webkit-appearance: none; 
+            background: #f0f0f0; border-radius: 4px; outline: none;
+            -webkit-transition: background 0.2s ease; transition: background 0.2s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb { 
+            -webkit-appearance: none; width: 22px; height: 22px; 
+            border-radius: 50%; background: #4CAF50; cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            -webkit-transition: transform 0.1s ease; transition: transform 0.1s ease;
+        }
+        input[type="range"]::-webkit-slider-thumb:active { transform: scale(1.1); }
+        input[type="range"]:active { background: #e8f5e9; }
+        .score-display { width: 60px; height: 36px; line-height: 36px; text-align: center; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; color: #333; }
+        /* 总分与录取线表格 */
+        .total-table { width: 100%; background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .total-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .total-item:last-child { margin-bottom: 0; }
+        .total-label { font-size: 18px; color: #333; font-weight: bold; }
+        .total-value { font-size: 20px; font-weight: bold; }
+        #current-total { color: #2196F3; }
+        #target-total { color: #F44336; }
+        .diff-value { font-size: 18px; color: #FF9800; font-weight: bold; }
+        .admission-table { width: 100%; background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .admission-title { font-size: 18px; color: #333; font-weight: bold; margin-bottom: 15px; text-align: center; }
+        .admission-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .admission-item:last-child { border-bottom: none; }
+        .school-name { font-size: 16px; color: #333; }
+        .school-score { font-size: 16px; font-weight: 500; color: #666; }
+        .school-diff { font-size: 16px; font-weight: bold; }
+        .meet { color: #4CAF50; }
+        .not-meet { color: #F44336; }
+        /* 方案提示 */
+        .scheme-tip { text-align: center; color: #666; font-size: 14px; margin-bottom: 10px; }
+        /* 署名样式：字体略放大，清晰易读 */
+        .signature { text-align: center; color: #888; font-size: 16px; font-weight: 500; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>镇江中考分数对比工具（多方案保存）</h1>
+        <div class="scheme-tip">支持保存3组分数方案，切换后可快速对比不同成绩</div>
+
+        <!-- 分数方案保存/切换按钮组 -->
+        <div class="scheme-group">
+            <button class="scheme-btn save" onclick="saveScheme(1)">保存到方案1</button>
+            <button class="scheme-btn load" onclick="loadScheme(1)">加载方案1</button>
+        </div>
+        <div class="scheme-group">
+            <button class="scheme-btn save" onclick="saveScheme(2)">保存到方案2</button>
+            <button class="scheme-btn load" onclick="loadScheme(2)">加载方案2</button>
+        </div>
+        <div class="scheme-group">
+            <button class="scheme-btn save" onclick="saveScheme(3)">保存到方案3</button>
+            <button class="scheme-btn load" onclick="loadScheme(3)">加载方案3</button>
+        </div>
+
+        <!-- 一键重置按钮 -->
+        <button class="reset-btn" onclick="resetAllScores()">
+            🔄 一键重置所有分数
+        </button>
+
+        <!-- 各科分数调整表格 -->
+        <div class="score-table">
+            <div class="subject-item">
+                <div class="subject-name">语文 (120)</div>
+                <button class="score-btn minus" onclick="adjustScore('chinese', -1)">-</button>
+                <div class="score-slider"><input type="range" id="chinese" min="0" max="120" value="0" oninput="updateAll()"></div>
+                <button class="score-btn plus" onclick="adjustScore('chinese', 1)">+</button>
+                <div class="score-display" id="chinese-score">0</div>
+            </div>
+            <div class="subject-item">
+                <div class="subject-name">数学 (120)</div>
+                <button class="score-btn minus" onclick="adjustScore('math', -1)">-</button>
+                <div class="score-slider"><input type="range" id="math" min="0" max="120" value="0" oninput="updateAll()"></div>
+                <button class="score-btn plus" onclick="adjustScore('math', 1)">+</button>
+                <div class="score-display" id="math-score">0</div>
+            </div>
+            <div class="subject-item">
+                <div class="subject-name">英语 (120)</div>
+                <button class="score-btn minus" onclick="adjustScore('english', -1)">-</button>
+                <div class="score-slider"><input type="range" id="english" min="0" max="120" value="0" oninput="updateAll()"></div>
+                <button class="score-btn plus" onclick="adjustScore('english', 1)">+</button>
+                <div class="score-display" id="english-score">0</div>
+            </div>
+            <div class="subject-item">
+                <div class="subject-name">物理 (100)</div>
+                <button class="score-btn minus" onclick="adjustScore('physics', -1)">-</button>
+                <div class="score-slider"><input type="range" id="physics" min="0" max="100" value="0" oninput="updateAll()"></div>
+                <button class="score-btn plus" onclick="adjustScore('physics', 1)">+</button>
+                <div class="score-display" id="physics-score">0</div>
+            </div>
+            <div class="subject-item">
+                <div class="subject-name">化学 (100)</div>
+                <button class="score-btn minus" onclick="adjustScore('chemistry', -1)">-</button>
+                <div class="score-slider"><input type="range" id="chemistry" min="0" max="100" value="0" oninput="updateAll()"></div>
+                <button class="score-btn plus" onclick="adjustScore('chemistry', 1)">+</button>
+                <div class="score-display" id="chemistry-score">0</div>
+            </div>
+            <div class="subject-item">
+                <div class="subject-name">生物+地理 (20)</div>
+                <button class="score-btn minus" onclick="adjustScore('bio-geo', -1)">-</button>
+                <div class="score-slider"><input type="range" id="bio-geo" min="0" max="20" value="0" oninput="updateAll()"></div>
+                <button class="score-btn plus" onclick="adjustScore('bio-geo', 1)">+</button>
+                <div class="score-display" id="bio-geo-score">0</div>
+            </div>
+            <div class="subject-item">
+                <div class="subject-name">体育 (40)</div>
+                <button class="score-btn minus" onclick="adjustScore('pe', -1)">-</button>
+                <div class="score-slider"><input type="range" id="pe" min="0" max="40" value="0" oninput="updateAll()"></div>
+                <button class="score-btn plus" onclick="adjustScore('pe', 1)">+</button>
+                <div class="score-display" id="pe-score">0</div>
+            </div>
+            <div class="subject-item">
+                <div class="subject-name">德法 (20)</div>
+                <button class="score-btn minus" onclick="adjustScore('politics', -1)">-</button>
+                <div class="score-slider"><input type="range" id="politics" min="0" max="20" value="0" oninput="updateAll()"></div>
+                <button class="score-btn plus" onclick="adjustScore('politics', 1)">+</button>
+                <div class="score-display" id="politics-score">0</div>
+            </div>
+            <div class="subject-item">
+                <div class="subject-name">历史 (60)</div>
+                <button class="score-btn minus" onclick="adjustScore('history', -1)">-</button>
+                <div class="score-slider"><input type="range" id="history" min="0" max="60" value="0" oninput="updateAll()"></div>
+                <button class="score-btn plus" onclick="adjustScore('history', 1)">+</button>
+                <div class="score-display" id="history-score">0</div>
+            </div>
+        </div>
+
+        <!-- 总分对比表格 -->
+        <div class="total-table">
+            <div class="total-item">
+                <div class="total-label">当前总分：</div>
+                <div class="total-value" id="current-total">0</div>
+            </div>
+            <div class="total-item">
+                <div class="total-label">中考满分：</div>
+                <div class="total-value" id="target-total">700</div>
+            </div>
+            <div class="total-item">
+                <div class="total-label">与满分差距：</div>
+                <div class="diff-value" id="score-diff">+700</div>
+            </div>
+        </div>
+
+        <!-- 高中录取线对比表格 -->
+        <div class="admission-table">
+            <div class="admission-title">镇江高中录取线对比</div>
+            <div class="admission-item">
+                <div class="school-name">1. 省丹中</div>
+                <div class="school-score">录取线：618分</div>
+                <div class="school-diff not-meet" id="diff-danzhong">差618分</div>
+            </div>
+            <div class="admission-item">
+                <div class="school-name">2. 镇江一中</div>
+                <div class="school-score">录取线：608分</div>
+                <div class="school-diff not-meet" id="diff-no1">差608分</div>
+            </div>
+            <div class="admission-item">
+                <div class="school-name">3. 镇江中学</div>
+                <div class="school-score">录取线：593分</div>
+                <div class="school-diff not-meet" id="diff-no2">差593分</div>
+            </div>
+            <div class="admission-item">
+                <div class="school-name">4. 实验高中</div>
+                <div class="school-score">录取线：570分</div>
+                <div class="school-diff not-meet" id="diff-experiment">差570分</div>
+            </div>
+            <div class="admission-item">
+                <div class="school-name">5. 心湖高中</div>
+                <div class="school-score">录取线：559分</div>
+                <div class="school-diff not-meet" id="diff-xinhu">差559分</div>
+            </div>
+            <div class="admission-item">
+                <div class="school-name">6. 茅以升</div>
+                <div class="school-score">录取线：532分</div>
+                <div class="school-diff not-meet" id="diff-maoyisheng">差532分</div>
+            </div>
+            <div class="admission-item">
+                <div class="school-name">7. 朱方高级中学</div>
+                <div class="school-score">录取线：503分</div>
+                <div class="school-diff not-meet" id="diff-zhufang">差503分</div>
+            </div>
+        </div>
+
+        <!-- 署名：字体放大至16px，加轻量加粗 -->
+        <div class="signature">by镇江一外2307LQJ</div>
+    </div>
+
+    <script>
+        // 存储3组分数方案（初始为空）
+        let scoreSchemes = {
+            1: {},
+            2: {},
+            3: {}
+        };
+        // 高中录取线数据
+        const admissionScores = {
+            danzhong: 618,
+            no1: 608,
+            no2: 593,
+            experiment: 570,
+            xinhu: 559,
+            maoyisheng: 532,
+            zhufang: 503
+        };
+        // 所有科目ID列表
+        const allSubjects = [
+            'chinese', 'math', 'english', 'physics', 
+            'chemistry', 'bio-geo', 'pe', 'politics', 'history'
+        ];
+
+        // 1. 保存当前分数到指定方案
+        function saveScheme(schemeNum) {
+            const currentScores = {};
+            // 收集当前所有科目分数
+            allSubjects.forEach(subjectId => {
+                currentScores[subjectId] = parseInt(document.getElementById(subjectId).value);
+            });
+            // 存储到对应方案
+            scoreSchemes[schemeNum] = currentScores;
+            // 提示保存成功（手机端友好）
+            alert(`已成功保存到【方案${schemeNum}】`);
+            // 高亮当前加载的方案按钮
+            highlightActiveScheme(schemeNum);
+        }
+
+        // 2. 加载指定方案的分数
+        function loadScheme(schemeNum) {
+            const savedScores = scoreSchemes[schemeNum];
+            // 检查方案是否有数据
+            if (Object.keys(savedScores).length === 0) {
+                alert(`【方案${schemeNum}】暂无保存数据，请先保存`);
+                return;
+            }
+            // 加载分数到进度条和显示框
+            allSubjects.forEach(subjectId => {
+                const input = document.getElementById(subjectId);
+                const score = savedScores[subjectId];
+                input.value = score;
+                document.getElementById(`${subjectId}-score`).textContent = score;
+            });
+            // 同步更新总分和录取线对比
+            updateAll();
+            // 提示加载成功
+            alert(`已加载【方案${schemeNum}】的分数`);
+            // 高亮当前加载的方案按钮
+            highlightActiveScheme(schemeNum);
+        }
+
+        // 3. 辅助：高亮当前加载的方案按钮
+        function highlightActiveScheme(schemeNum) {
+            // 先移除所有按钮的高亮
+            document.querySelectorAll('.scheme-btn.load').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // 高亮当前方案的加载按钮
+            const activeBtn = document.querySelector(`.scheme-group:nth-child(${schemeNum + 1}) .scheme-btn.load`);
+            if (activeBtn) activeBtn.classList.add('active');
+        }
+
+        // 4. 一键重置所有分数
+        function resetAllScores() {
+            allSubjects.forEach(subjectId => {
+                const input = document.getElementById(subjectId);
+                input.value = 0;
+                document.getElementById(`${subjectId}-score`).textContent = 0;
+            });
+            updateAll();
+            alert('已重置所有分数为0');
+        }
+
+        // 5. 1分精准调整分数
+        function adjustScore(subjectId, step) {
+            const input = document.getElementById(subjectId);
+            let currentValue = parseInt(input.value);
+            const min = parseInt(input.min);
+            const max = parseInt(input.max);
+            const newValue = Math.max(min, Math.min(max, currentValue + step));
+            input.value = newValue;
+            updateAll();
+        }
+
+        // 6. 实时更新所有显示
+        function updateAll() {
+            let currentTotal = 0;
+            // 计算总分并更新科目分数显示
+            allSubjects.forEach(subjectId => {
+                const score = parseInt(document.getElementById(subjectId).value);
+                document.getElementById(`${subjectId}-score`).textContent = score;
+                currentTotal += score;
+            });
+
+            // 更新总分和与满分差距
+            document.getElementById('current-total').textContent = currentTotal;
+            const scoreDiff = 700 - currentTotal;
+            document.getElementById('score-diff').textContent = (scoreDiff >= 0 ? '+' : '') + scoreDiff + '分';
+
+            // 更新与各高中录取线的差距
+            for (const [key, score] of Object.entries(admissionScores)) {
+                const diffEl = document.getElementById(`diff-${key}`);
+                const diff = currentTotal - score;
+                if (diff >= 0) {
+                    diffEl.textContent = `超${diff}分`;
+                    diffEl.className = 'school-diff meet';
+                } else {
+                    diffEl.textContent = `差${-diff}分`;
+                    diffEl.className = 'school-diff not-meet';
+                }
+            }
+        }
+
+        // 页面加载初始化
+        window.onload = updateAll;
+    </script>
+</body>
+</html>
